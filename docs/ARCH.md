@@ -180,3 +180,54 @@ type Media = Omit<Viewable, "view_id"> & {
 ```typescript=
 type MediaType = "image" | "video" | "sound" | "unknown";
 ```
+
+## Schema (of private data)
+
+### UserAuthData
+
+```typescript=
+type UserAuthData = {
+  "id": Uuid,
+  "name": string,
+  "password": string,
+  "tokens": Array<Token>,
+}
+```
+
+| field    | type           | optional | default | description                            |
+|:-------- |:-------------- |:-------- |:------- |:-------------------------------------- |
+| id       | Uuid           |          |         | link to User                           |
+| name     | string         |          |         | unique name                            |
+| password | string         |          |         | password (MUST rethink about security) |
+| tokens   | Array\<Token\> |          |         | issued tokens                          |
+
+### Token
+
+```typescript=
+type Token = {
+  "id": Uuid,
+  "token": string,
+  "expiration": Date,
+  "authority": TokenAuthority,
+};
+```
+
+| field      | type           | optional | default | description              |
+|:---------- |:-------------- |:-------- |:------- |:------------------------ |
+| id         | Uuid           |          |         | unique token id          |
+| token      | string         |          |         | token (MUST rethink ...) |
+| expiration | Date           |          |         | valid until              |
+| authority  | TokenAuthority |          |         | associated authority     |
+
+### TokenAuthority
+
+```typescript=
+type TokenAuthority = number;
+```
+
+// TODO: Usecaseが固まったらそれごとに割り当てれば良いんじゃね？
+
+| name     | position | description |
+|:-------- |:-------- |:----------- |
+| identify | 0        |             |
+
