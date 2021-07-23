@@ -50,7 +50,10 @@ GAEも検討中.
 このPjに限らず, nginx他で1つのipを共有する形にしているため, その形式に合わせる.  
 具体的には`docker-compose`である.
 
-~~後述のVCの仕組みが確定していないのでなんとも言えないが, 鯖側の通信量がそれなりになりそうなので, GCPだと通信量で運営が破産する恐れがある. -> なんとかしないといけない
+~~後述のVCの仕組みが確定していないのでなんとも言えないが, 鯖側の通信量がそれなりになりそうなので, GCPだと通信量で運営が破産する恐れがある. -> なんとかしないといけない~~  
+確定はしたんだけど. 結局vcはfeatureになりそう  
+docker~~ﾄﾞｶｰﾝ~~した時にWebRTCの挙動がどうなるのか不透明なのが一つ,  
+後は通信量の話.
 
 ### application
 
@@ -134,6 +137,69 @@ Messageは以下のようなメタ的な情報を含んでいます:
 
 tag付きMessageはchannelを適用することで観測が可能になり, tag剥がしを持って内容を取得できます.  
 一方branch付きMessageは何もせずとも表示されますが, 観測するlineを制限することで該当branchの付与されたMessageのみを観測することが出来ます.
+
+### "Can I use VC as 1 to 1 calls?"
+
+使え…ないとちょっと不自然だよね… と思ったので*そのうち*実装します. ~~面倒だし~~
+
+
+### feature / release scheduleまとめ
+
+色々ごちゃごちゃになってきたのでまとめ.
+
+#### feature
+
+- User
+  - basic-features
+    - icon
+    - status message
+    - self-introduction
+- Room
+  - basic-features
+    - icon
+    - description
+  - text chat
+  - voice chat
+- Text Chat
+  - basic-features
+    - text content
+  - media contents
+  - tag / channel
+  - branch / line
+- Voice Chat
+  - basic-features
+    - multiple tracks
+
+#### release schedule
+
+※**Backend**, not Frontend.
+
+- v0.1
+  - User
+    - basic-features
+  - Room
+    - basic-features
+- v0.2
+  - Text Chat
+    - basic-features
+- v0.3
+  - Text Chat
+    - media contents
+    - tag / channel
+    - branch / line
+- v0,4
+  - Room
+    - text chat
+- v0.5
+  - Voice Chat
+    - basic-features
+- v0.6
+  - Room
+    - voice chat
+- \>=v0.7
+  - bug-fixes and `rc`
+- v1.0
+  - 🎉 ***release.***
 
 ## Schema
 
