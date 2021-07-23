@@ -142,6 +142,14 @@ tag付きMessageはchannelを適用することで観測が可能になり, tag�
 
 使え…ないとちょっと不自然だよね… と思ったので*そのうち*実装します. ~~面倒だし~~
 
+### password平文問題について
+
+`passwordを保存 → 文字列比較`  
+というのが危険っぽい…のかな？と思いたち, archlinuxのpasswordそれに習って(慣習的？)文字列比較からchecksumへの置換.  
+
+取り敢えずなんかつよそうなのでSHA-3の512bitsで`keccak-512sum`(in archlinux)の使用. rsだと`sha3`を使用. まぁ現行のsha-3 512ですね…  
+
+多分問題はあるんだろうが, 平文保存はアレなので一応対処ってことで…
 
 ### feature / release scheduleまとめ
 
