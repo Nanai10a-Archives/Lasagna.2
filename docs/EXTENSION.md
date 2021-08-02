@@ -1,5 +1,7 @@
 # Lasagna-extensioning-plan
 
+[![hackmd-github-sync-badge](https://hackmd.io/9zv5e8oqQnq2nivou5CbVA/badge)](https://hackmd.io/9zv5e8oqQnq2nivou5CbVA)
+
 ### Introduction
 
 或る日の私: 「自作SNS作ってdeployすれば何喋ってもええやろ！作るか！」
