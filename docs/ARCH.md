@@ -15,7 +15,7 @@ WebsocketとWebRTCで何か, 作りたくないですか？
 
 具体的な実装を決めていきます.
 
-### endpoints
+### endpoints (frontend)
 
 Discordのもの(`discord.com`)をリスペクトした(なんならそのまんま)ような感じにします.
 
@@ -34,6 +34,10 @@ login他をここででさせる.
 authに失敗すると`/account`に~~redirectされるか, 誘導される.~~ 誘導にします.
 
 こちらyewアプリとなっております. (他はreact)
+
+## Feature and others
+
+機能や運用予定等について色々書いておく.
 
 ### auth
 
@@ -59,7 +63,7 @@ docker~~ﾄﾞｶｰﾝ~~した時にWebRTCの挙動がどうなるのか不透�
 
 機能は2つ: テキストベースのchatと, ボイスベースのchat.  
 
-TCはWebsocket上でやりとりをする, 読み込み時には最新nメッセージを取得し, 残りはページングのような処理にしていく.  
+textchatはWebsocket上でやりとりをする, 読み込み時には最新nメッセージを取得し, 残りはページングのような処理にしていく.  
 (具体的には, Timestampの比較でページの区切りを行う)
 
 ~~VCは未定ですが:  
@@ -78,12 +82,19 @@ tagを付けることによって全体で分別が出来る.
 Twitterの`#`とは異なる. MastodonのCWに類似する.
 
 これにより, APIから提供される情報が**断片的な場合**が含まれることとなる.  
-例えばSpoilerの付与されたMessageを取得する際には明示的に示す必要があり, 示されていない又は拒否するように示された場合は内容が断片的になる.  
+tagの付与されたMessageを取得する際には明示的に要求を示す必要があり, 示されていない又は拒否するように示された場合は内容が断片的になる.  
 この"完全な状態の情報を要求する"という行為を「**[tag名]を剥がす**」と呼び, 総称して「**tag剥がし**」と呼びます.
 
 tag剥がしを常に行うことは基本的に**推奨されておらず**, 必要に応じてtag剥がしを行うべきです.  
-要は*deprecated*な操作となります. 基本は **剥がされていないこと** です.  
-基本的にはユーザーに確認を取る, 操作を分離する等の対策を取る必要がある.
+要は*deprecated*な操作となります. **剥がされていないことが基本**です.  
+基本的にはユーザーに確認を取る, 操作を分離する等の対策を取ることを要求します.
+
+#### 「Media#hiddenと被ってない？」
+
+~~ちょっと思った.~~
+
+Messageが持つtag(hiddenの拡張のようなもの)とMediaの持つhidden についてですが,  
+*Message has Media*だけではなくMediaも独立して存在できるため, **被ってません**.
 
 ### Message#branches
 
@@ -151,6 +162,38 @@ tag付きMessageはchannelを適用することで観測が可能になり, tag�
 
 多分問題はあるんだろうが, 平文保存はアレなので一応対処ってことで…
 
+### mediaのupload機能について
+
+Discordみたいに容量に制約を付けて実現するのも良いんだけど, 取り敢えずはurlからのリンクでのみ対応ってのが望ましい と思っている  
+実際ここのfeatureにはuploadの項は無い そういうこと
+
+保存と転送のデータ容量が肥大化するのはまじで困るので正直微妙ではあるけど, 実装だけしてみて無効化しておくってのも運用法の一つかもしれない  
+というかdeploy時にconfig読んでその設定道理に起動するような機構を作るべきでは？となっているけど, 今のところは未定です.  
+というかそもそも保存の方法が定まっていないのでアレだったり dbでいいんじゃないかな(適当)
+
+*Lasagna-extensioning-plan*と並行して*configuration-plan*と*media-uploader-plan*みたいな拡張案を作成すべきかもしれない  
+~~というか名前ダサすぎる 無理に英語使わなくて良いんですよ~~
+
+### 「textchatがAPI-basedなら, voicechatも勝手にclient作れるってこと？」
+
+A. **現段階では無理です.** やめてください. 自己責任でお願いします.
+
+なんでかって, 結局WebRTCを使うわけだから適当にjs使ってclientは仕立てられるだろうから制限は出来ないけど, どうなるかは正直あれだし…  
+あと, **client側でAPIを更新する責務**が発生してしまうとcustom-clientを看過するわけにはいかない…となってしまうのですよね.  
+結局鯖とConnectionを作るのであれば, Dataの方で色々送信するなりしつつ鯖側で全てどうにかしてしまうのが一番良さそうではあるので, その辺の修正が求められる. ~~気が向けばします.~~
+
+まぁ鯖で全てを処理するようにしてしまった場合, 某DiscordのGateway或いはWebhookのように**client実装者側が責任を持って実装しないと利用できない**みたいなアレになる可能性はあるので, ちょっと…うん…  
+そういうの, 例えばratelimitみたいな定数の調整が面倒だし, やりたくないんだけどね…うん…  
+まぁ定数はconfigで弄れたとしてもそういう機構が面倒だよねっていう 怠惰である.
+
+### 「監査ログ的なものは作らないの？」
+
+今回作るapplicationは某Discord…というよりかは某LINEに近いものです.  
+…LINEに監査ログ, ありますかね？
+
+でも大して実装運用コストはかからないと思うので可能性はあります.  
+監査ログっていうかただのRoomのLogですけど.
+
 ### feature / release scheduleまとめ
 
 色々ごちゃごちゃになってきたのでまとめ.
@@ -180,7 +223,7 @@ tag付きMessageはchannelを適用することで観測が可能になり, tag�
 
 #### release schedule
 
-※**Backend**, not Frontend.
+※Backend, not Frontend.
 
 - v0.1
   - User
@@ -209,9 +252,44 @@ tag付きMessageはchannelを適用することで観測が可能になり, tag�
 - v1.0
   - 🎉 ***release.***
 
+#### no scheduled feature
+
+- media uploader
+- user to user voicechat *(direct call)*
+- 
+
+## db / collection
+
+db / collectionの運用法を考えていなかった. ~~愚か~~  
+dbは取り敢えず単一のものを使用する予定. もし悪手だったり他理由で変更はあり得る.  
+collectionの運用は列挙しながら考えていく.
+
+- **c:** *collection*
+  - *data*
+
+.
+
+- **c:** infos
+  - **c:** users
+    - User
+  - **c:** rooms
+    - Room
+  - **c:** textchats
+    - TextChatInfo
+  - **c:** voicechats
+    - VoiceChatInfo
+- **c:** textchats_messages
+  - **c:** [Room#textchat_id]
+    - Message
+- **c:** voicechats_actions
+  - **c:** [Room#voicechat_id]
+    - VoiceChatAction
+
+.
+
 ## Schema
 
-### \_types
+### type:basic_types
 
 | name | entity | description |
 |:---- |:------ |:----------- |
@@ -223,10 +301,9 @@ tag付きMessageはchannelを適用することで観測が可能になり, tag�
 
 | field | type | optional | default | description |
 |:----- |:---- |:-------- |:------- |:----------- |
-|       |      |          |         |             |
 
 
-### Viewable
+### type:Viewable
 
 汎用化 (尚早)
 
@@ -237,14 +314,14 @@ type Viewable = {
   "view_id": string,
   "created": Date,
   "updated"?: Date,
-};
+}
 ```
 
 | field   | type   | optional | default | description                |
 |:------- |:------ |:-------- |:------- |:-------------------------- |
 | id      | Uuid   |          |         | unique id (for system)     |
-| name    | string |          |         | \[entity\] name            |
-| view_id | string |          |         | unique id (for users)      |
+| name    | string |          |         | (unique?) \[entity\] name  |
+| view_id | string |          |         | (unique?) id (for users)   |
 | created | Date   |          |         | initial Date               |
 | updated | Date   | yes      |         | last updates Date (edited) |
 
@@ -259,14 +336,12 @@ type User = Viewable & {
   "icon"?: Url,
   "status"?: string,
   "introduction"?: string,
-};
+}
 ```
-
-
 
 | field        | type   | optional | default | description            |
 |:------------ |:------ |:-------- |:------- |:---------------------- |
-| icon         | Url    | yes      | yes     | to image for icon      |
+| icon         | Url    |          | yes     | to image for icon      |
 | status       | string | yes      |         | "status message"       |
 | introduction | string | yes      |         | "self introduction"    |
 
@@ -276,15 +351,22 @@ type User = Viewable & {
 type Room = Viewable & {
   "icon"?: Url,
   "description"?: string,
-  "messages": Array<Message>,
-};
+  "textchat_id": Uuid,
+  "voicechat_id": Uuid,
+}
 ```
 
-| field       | type            | optional | default | description         |
-|:----------- |:--------------- |:-------- |:------- |:------------------- |
-| icon        | Url             | yes      | yes     | to image for icon   |
-| description | string          | yes      |         | "status message"    |
-| messages    | Array\<string\> |          |         | "self introduction" |
+| field        | type   | optional | default | description       |
+|:------------ |:------ |:-------- |:------- |:----------------- |
+| icon         | Url    |          | yes     | to image for icon |
+| description  | string | yes      |         | "status message"  |
+| textchat_id  | Uuid   |          |         | textchat id       |
+| voicechat_id | Uuid   |          |         | voicechat id      |
+
+#### 「Room#view_idとRoom#id って分けて何するの？」
+
+Room#idは内部的に使用しますがRoom#view_idはUser#view_idと同様uniqueな名前に近い立ち位置での意味が存在します.  
+なのでidは表面的にはあまり使わないと思って良いです.
 
 ### Message
 
@@ -293,16 +375,20 @@ type Message = Omit<Viewable, "name" | "view_id"> & {
   "author": User,
   "room": Room,
   "content"?: string,
-  "medias": Array<Media>,
-};
+  "medias"?: Array<Media>,
+  "tags": Array<string>,
+  "branches": Array<string>,
+}
 ```
 
-| field   | type           | optional | default | description       |
-|:------- |:-------------- |:-------- |:------- |:----------------- |
-| author  | User           |          |         | written by who    |
-| room    | Room           |          |         | written to where  |
-| content | string         | yes      |         | message content   |
-| medias  | Array\<Media\> |          |         | additional medias |
+| field    | type            | optional | default | description       |
+|:-------- |:--------------- |:-------- |:------- |:----------------- |
+| author   | User            |          |         | written by who    |
+| room     | Room            |          |         | written to where  |
+| content  | string          | yes      |         | message content   |
+| medias   | Array\<Media\>  | yes      | yes     | additional medias |
+| tags     | Array\<string\> |          | yes     | message tags      |
+| branches | Array\<string\> |          | yes     | message branches  |
 
 
 ### Media
@@ -312,19 +398,86 @@ type Media = Omit<Viewable, "view_id"> & {
   "url": Url,
   "type": MediaType,
   "hidden"?: boolean,
-};
+}
 ```
 
 | field  | type      | optional | default | description      |
 |:------ |:--------- |:-------- |:------- |:---------------- |
 | url    | Url       |          |         | to Media Data    |
-| type   | MediaType |          |         | kind of Data     |
-| hidden | boolean   | yes      | yes     | like a "spoiler" |
+| type   | MediaType |          | yes     | kind of Data     |
+| hidden | boolean   |          | yes     | like a "spoiler" |
 
 ### MediaType
 
 ```typescript=
 type MediaType = "image" | "video" | "sound" | "unknown";
+```
+
+### TextChatInfo
+
+```typescript=
+type TextChatInfo = Omit<Viewable, "name" | "view_id"> & {
+  "channels": Array<Channel>,
+  "lines": Array<Line>,
+}
+```
+
+| field    | type             | optional | default | description |
+|:-------- |:---------------- |:-------- |:------- |:----------- |
+| channels | Array\<Channel\> |          |         | channels    |
+| lines    | Array\<Line\>    |          |         | lines       |
+
+### Channel
+
+```typescript=
+type Channel = Omit<Viewable, "view_id" | "updated"> & {
+  "description": string,
+}
+```
+| field       | type   | optional | default | description         |
+|:----------- |:------ |:-------- |:------- |:------------------- |
+| description | string | yes      |         | channel description |
+
+### Line
+
+```typescript=
+type Line = Omit<Viewable, "view_id" | "updated"> & {
+  "description": string,
+}
+```
+| field       | type   | optional | default | description      |
+|:----------- |:------ |:-------- |:------- |:---------------- |
+| description | string | yes      |         | line description |
+
+### VoiceChatInfo
+
+API側からも情報を取得できるようにしたかったけど悶々として策定が進まなかったので別案にて.
+
+```typescript=
+type VoiceChatInfo = Omit<Viewable, "name", "view_id"> & undefined
+```
+
+未策定です.
+
+| field | type | optional | default | description |
+|:----- |:---- |:-------- |:------- |:----------- |
+
+### VoiceChatAction
+
+Logです.
+
+```typescript=
+type VoiceChatAction = Omit<Viewable, "name", "view_id", "updated"> & {
+  "type": VoiceChatActionType
+}
+```
+
+### VoiceChatActionType
+
+```typescript=
+type VoiceChatActionType = "join" | "quit"
+    | "mute" | "unmute"
+    | "deafen" | "undeafen"
 ```
 
 ## Schema (of private data)
@@ -335,40 +488,40 @@ type MediaType = "image" | "video" | "sound" | "unknown";
 type UserAuthData = {
   "id": Uuid,
   "name": string,
-  "password": string,
+  "hash": string,
   "tokens": Array<Token>,
 }
 ```
 
-| field    | type           | optional | default | description                            |
-|:-------- |:-------------- |:-------- |:------- |:-------------------------------------- |
-| id       | Uuid           |          |         | link to User                           |
-| name     | string         |          |         | unique name                            |
-| password | string         |          |         | password (MUST rethink about security) |
-| tokens   | Array\<Token\> |          |         | issued tokens                          |
+| field  | type           | optional | default | description   |
+|:------ |:-------------- |:-------- |:------- |:------------- |
+| id     | Uuid           |          |         | link to User  |
+| name   | string         |          |         | unique name   |
+| hash   | string         |          |         | password hash |
+| tokens | Array\<Token\> |          |         | issued tokens |
 
 ### Token
 
 ```typescript=
 type Token = {
   "id": Uuid,
-  "token": string,
+  "hash": string,
   "expiration": Date,
   "authority": TokenAuthority,
-};
+}
 ```
 
-| field      | type           | optional | default | description              |
-|:---------- |:-------------- |:-------- |:------- |:------------------------ |
-| id         | Uuid           |          |         | unique token id          |
-| token      | string         |          |         | token (MUST rethink ...) |
-| expiration | Date           |          |         | valid until              |
-| authority  | TokenAuthority |          |         | associated authority     |
+| field      | type           | optional | default | description          |
+|:---------- |:-------------- |:-------- |:------- |:-------------------- |
+| id         | Uuid           |          |         | unique token id      |
+| hash       | string         |          |         | token hash           |
+| expiration | Date           |          |         | valid until          |
+| authority  | TokenAuthority |          |         | associated authority |
 
 ### TokenAuthority
 
 ```typescript=
-type TokenAuthority = number;
+type TokenAuthority = number
 ```
 
 // TODO: Usecaseが固まったらそれごとに割り当てれば良いんじゃね？
@@ -376,4 +529,3 @@ type TokenAuthority = number;
 | name     | position | description |
 |:-------- |:-------- |:----------- |
 | identify | 0        |             |
-
