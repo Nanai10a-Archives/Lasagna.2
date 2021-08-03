@@ -529,3 +529,127 @@ type TokenAuthority = number
 | name     | position | description |
 |:-------- |:-------- |:----------- |
 | identify | 0        |             |
+
+## Usecases
+
+### User
+
+#### create
+
+##### input
+
+```typescript=
+{
+  "name": User.name,
+  "view_id": User.view_id,
+  "auth_id": UserAuthData.name,
+  "auth_password": string,
+}
+```
+
+##### output
+
+```typescript=
+User
+```
+
+#### read (1)
+
+##### input
+
+```typescript=
+{
+  "name": User.name,
+}
+```
+
+##### output
+
+```typescript=
+Array<User>
+```
+
+#### read (2)
+
+##### input
+
+```typescript=
+{
+  "view_id": User.view_id,
+}
+```
+
+##### output
+
+```typescript=
+User
+```
+
+#### update
+
+##### input
+
+```typescript=
+{
+  "name"?: User.name,
+  "view_id"?: User.view_id,
+  "icon"?: User.icon,
+  "status"?: User.status,
+  "introduction"?: User.introduction,
+  "auth_id"?: UserAuthData.name,
+  "auth_password"?: string,
+}
+```
+
+##### output
+
+```typescript=
+User
+```
+
+#### delete (1)
+
+##### input
+
+```typescript=
+{}
+```
+
+##### output
+
+```typescript=
+{
+  "confirm_token": string,
+}
+```
+
+#### delete (2)
+
+##### input
+
+```typescript=
+{
+  "confirmed": string,
+}
+```
+
+##### output
+
+```typescript=
+{
+  "you": User,
+  "message": string,
+}
+```
+
+### Room
+
+undefined
+
+### TextChat
+
+undefined
+
+### VoiceChat
+
+undefined
