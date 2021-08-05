@@ -373,7 +373,7 @@ Room#idは内部的に使用しますがRoom#view_idはUser#view_idと同様uniq
 ```typescript=
 type Message = Omit<Viewable, "name" | "view_id"> & {
   "author": User,
-  "room": Room,
+  "textchat": TextChatInfo,
   "content"?: string,
   "medias"?: Array<Media>,
   "tags": Array<string>,
@@ -384,7 +384,7 @@ type Message = Omit<Viewable, "name" | "view_id"> & {
 | field    | type            | optional | default | description       |
 |:-------- |:--------------- |:-------- |:------- |:----------------- |
 | author   | User            |          |         | written by who    |
-| room     | Room            |          |         | written to where  |
+| textchat | TextChatInfo    |          |         | written to where  |
 | content  | string          | yes      |         | message content   |
 | medias   | Array\<Media\>  | yes      | yes     | additional medias |
 | tags     | Array\<string\> |          | yes     | message tags      |
@@ -468,9 +468,16 @@ Logです.
 
 ```typescript=
 type VoiceChatAction = Omit<Viewable, "name", "view_id", "updated"> & {
-  "type": VoiceChatActionType
+  "user": User,
+  "type": VoiceChatActionType,
 }
 ```
+
+| field | type                | optional | default | description      |
+|:----- |:------------------- |:-------- |:------- |:---------------- |
+| user  | User                |          |         | who did actioned |
+| type  | VoiceChatActionType |          |         | kind of action   |
+
 
 ### VoiceChatActionType
 
@@ -553,23 +560,7 @@ type TokenAuthority = number
 User
 ```
 
-#### read (1)
-
-##### input
-
-```typescript=
-{
-  "name": User.name,
-}
-```
-
-##### output
-
-```typescript=
-Array<User>
-```
-
-#### read (2)
+#### read
 
 ##### input
 
@@ -591,6 +582,7 @@ User
 
 ```typescript=
 {
+  "id": User.id,
   "name"?: User.name,
   "view_id"?: User.view_id,
   "icon"?: User.icon,
@@ -612,7 +604,9 @@ User
 ##### input
 
 ```typescript=
-{}
+{
+  "id": User.id,
+}
 ```
 
 ##### output
@@ -629,6 +623,7 @@ User
 
 ```typescript=
 {
+  "id": User.id,
   "confirmed": string,
 }
 ```
@@ -644,12 +639,375 @@ User
 
 ### Room
 
-undefined
+#### create
+
+##### input
+
+```typescript=
+{
+  "name": Room.name
+}
+```
+
+##### output
+
+```typescript=
+Room
+```
+
+#### read
+
+##### input
+
+```typescript=
+{
+  "view_id": Room.view_id,
+}
+```
+
+##### output
+
+```typescript=
+Room
+```
+
+#### update
+
+##### input
+
+```typescript=
+{
+  "id": Room.id,
+  "name"?: Room.name,
+  "icon"?: Room.icon,
+  "description"?: Room.description,
+}
+```
+
+##### output
+
+```typescript=
+Room
+```
+
+#### delete
+
+##### input
+
+```typescript=
+{
+  "id": Room.id,
+}
+```
+
+##### output
+
+```typescript=
+{}
+```
 
 ### TextChat
 
-undefined
+#### create
+
+##### input
+
+```typescript=
+{}
+```
+
+##### output
+
+```typescript=
+TextChatInfo
+```
+
+#### read (1)
+
+##### input
+
+```typescript=
+{
+  "id": TextChatInfo.id,
+}
+```
+
+##### output
+
+```typescript=
+TextChatInfo
+```
+
+#### read (2)
+
+##### input
+
+```typescript=
+{
+  "id": Message.id,
+}
+```
+
+##### output
+
+```typescript=
+Message
+```
+
+#### read (3)
+
+##### input
+
+```typescript=
+{
+  "id": TextChatInfo.id,
+  "items": number,
+  "sort"?: MessageSort,
+  "order"?: Order,
+  "page": number,
+  "channel"?: Array<Channel.name>,
+  "line"?: Array<Line.name>,
+  "filters"?: Array<MessageFilter>,
+}
+```
+
+Filterについて:  
+AND, ORでのfilteringは対応するが, 双方を含んだ複雑なfilteringは将来的に実装されるかもしれない. 現時点では対応されない.  
+また`filters`は順序が考慮**される**.
+
+```typescript=
+type MessageSort = "created" | "last_updated"
+```
+
+```typescript=
+type Order = "up" | "down"
+```
+
+```typescript=
+type MessageFilter = {
+  "kind": MessageFilterKind,
+  "not": boolean,
+  "conditions": MessageFilterCondition,
+}
+```
+
+```typescript=
+type MessageFilterKind = "created" | "updated"
+    | "last_updated" | "content"
+    | "author" | "has_media"
+```
+
+`has_media`について:  
+複数のMediaTypeを指定した場合, 照合するのは**それを含んでいるか**についてであり, 数については考慮**されない**.
+
+```typescript=
+type MessageFilterCondition =
+    Date | string | User.view_id | Array<MediaType>
+```
+
+##### output
+
+```typescript=
+{
+  "total": number,
+  "total_pages": number,
+  "current_page": number,
+  "result": Array<Message>,
+}
+```
+
+#### update (1)
+
+##### input
+
+```typescript=
+{
+  "content"?: Message.content.
+  "medias"?: Message.medias,
+  "tags"?: Message.tags,
+  "branches"?: Message.branches,
+}
+```
+
+##### output
+
+```typescript=
+Message
+```
+
+#### update (2)
+
+##### input
+
+```typescript=
+{
+  "id": Message.id,
+  "content"?: Message.content.
+  "medias"?: Message.medias,
+  "tags"?: Message.tags,
+  "branches"?: Message.branches,
+}
+```
+
+##### output
+
+```typescript=
+Message
+```
+
+#### delete (1)
+
+##### input
+
+```typescript=
+{
+  "id": TextChatInfo.id,
+}
+```
+
+##### output
+
+```typescript=
+{}
+```
+
+#### delete (2)
+
+##### input
+
+```typescript=
+{
+  "id": Message.id,
+}
+```
+
+##### output
+
+```typescript=
+{}
+```
 
 ### VoiceChat
 
-undefined
+#### create
+
+##### input
+
+```typescript=
+{}
+```
+
+##### output
+
+```typescript=
+VoiceChatInfo
+```
+
+#### read (1)
+
+##### input
+
+```typescript=
+{
+  "id": VoiceChatInfo.id,
+}
+```
+
+##### output
+
+```typescript=
+VoiceChatInfo
+```
+#### read (2)
+
+##### input
+
+```typescript=
+{
+  "id": VoiceChatAction.id,
+}
+```
+
+##### output
+
+```typescript=
+VoiceChatAction
+```
+#### read (3)
+
+##### input
+
+```typescript=
+{
+  "id": VoiceChatAction.id,
+  "items": number,
+  "sort"?: VoiceChatActionSort,
+  "order"?: Order,
+  "page": number,
+  "filters"?: Array<VoiceChatActionFilter>,
+}
+```
+
+```typescript=
+type VoiceChatActionSort = "created"
+```
+
+```typescript=
+type VoiceChatActionFilter = {
+  "kind": VoiceChatActionFilterKind,
+  "not": boolean,
+  "conditions": VoiceChatActionFilterCondition,
+}
+```
+
+```typescript=
+type VoiceChatActionFilterKind = "created" | "user" | "kind"
+```
+
+```typescript=
+type VoiceChatActionFilterCondition =
+    Date | User.view_id | VoiceChatActionType
+```
+
+##### output
+
+```typescript=
+{
+  "total": number,
+  "total_pages": number,
+  "current_page": number,
+  "result": Array<VoiceChatAction>,
+}
+```
+
+#### update
+
+##### input
+
+```typescript=
+{
+  "kind": VoiceChatActionKind,
+}
+```
+
+##### output
+
+```typescript=
+VoiceChatAction
+```
+
+#### delete
+
+##### input
+
+```typescript=
+{
+  "id": VoiceChatInfo.id,
+}
+```
+
+##### output
+
+```typescript=
+{}
+```
