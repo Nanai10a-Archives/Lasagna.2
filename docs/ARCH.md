@@ -205,6 +205,9 @@ A. **現段階では無理です.** やめてください. 自己責任でお願
     - icon
     - status message
     - self-introduction
+- UserAuth
+  - basic-features
+    - [...]
 - Room
   - basic-features
     - icon
@@ -227,6 +230,8 @@ A. **現段階では無理です.** やめてください. 自己責任でお願
 
 - v0.1
   - User
+    - basic-features
+  - UserAuth
     - basic-features
   - Room
     - basic-features
@@ -256,7 +261,6 @@ A. **現段階では無理です.** やめてください. 自己責任でお願
 
 - media uploader
 - user to user voicechat *(direct call)*
-- 
 
 ## db / collection
 
@@ -278,6 +282,11 @@ collectionの運用は列挙しながら考えていく.
     - TextChatInfo
   - **c:** voicechats
     - VoiceChatInfo
+- **c:** private_infos
+  - **c:** auths
+    - UserAuthData
+  - **c:** tokens
+    - Token
 - **c:** textchats_messages
   - **c:** [Room#textchat_id]
     - Message
@@ -301,6 +310,9 @@ collectionの運用は列挙しながら考えていく.
 
 | field | type | optional | default | description |
 |:----- |:---- |:-------- |:------- |:----------- |
+
+| name | position | description |
+|:---- |:-------- |:----------- |
 
 
 ### type:Viewable
@@ -351,17 +363,26 @@ type User = Viewable & {
 type Room = Viewable & {
   "icon"?: Url,
   "description"?: string,
+  "permissions": Array<RoomPermission>,
   "textchat_id": Uuid,
   "voicechat_id": Uuid,
 }
 ```
 
-| field        | type   | optional | default | description       |
-|:------------ |:------ |:-------- |:------- |:----------------- |
-| icon         | Url    |          | yes     | to image for icon |
-| description  | string | yes      |         | "status message"  |
-| textchat_id  | Uuid   |          |         | textchat id       |
-| voicechat_id | Uuid   |          |         | voicechat id      |
+| field        | type                | optional | default | description       |
+|:------------ |:------------------- |:-------- |:------- |:----------------- |
+| icon         | Url                 |          | yes     | to image for icon |
+| description  | string              | yes      |         | "status message"  |
+| permissions  | Array\<Permission\> |          | yes     | given permissions |
+| textchat_id  | Uuid                |          |         | textchat id       |
+| voicechat_id | Uuid                |          |         | voicechat id      |
+
+on `permissions#expression`
+
+| name   | position | description     |
+|:------ |:-------- |:--------------- |
+| modify | 0        | modifiable room |
+| delete | 1        | deletable ...   |
 
 #### 「Room#view_idとRoom#id って分けて何するの？」
 
@@ -372,7 +393,7 @@ Room#idは内部的に使用しますがRoom#view_idはUser#view_idと同様uniq
 
 ```typescript=
 type Message = Omit<Viewable, "name" | "view_id"> & {
-  "author": User,
+  "author": Uuid,
   "textchat": TextChatInfo,
   "content"?: string,
   "medias"?: Array<Media>,
@@ -383,7 +404,7 @@ type Message = Omit<Viewable, "name" | "view_id"> & {
 
 | field    | type            | optional | default | description       |
 |:-------- |:--------------- |:-------- |:------- |:----------------- |
-| author   | User            |          |         | written by who    |
+| author   | Uuid            |          |         | written by who    |
 | textchat | TextChatInfo    |          |         | written to where  |
 | content  | string          | yes      |         | message content   |
 | medias   | Array\<Media\>  | yes      | yes     | additional medias |
@@ -418,14 +439,28 @@ type MediaType = "image" | "video" | "sound" | "unknown";
 ```typescript=
 type TextChatInfo = Omit<Viewable, "name" | "view_id"> & {
   "channels": Array<Channel>,
+  "permissions": Array<Permission>,
   "lines": Array<Line>,
 }
 ```
 
-| field    | type             | optional | default | description |
-|:-------- |:---------------- |:-------- |:------- |:----------- |
-| channels | Array\<Channel\> |          |         | channels    |
-| lines    | Array\<Line\>    |          |         | lines       |
+| field       | type                | optional | default | description       |
+|:----------- |:------------------- |:-------- |:------- |:----------------- |
+| channels    | Array\<Channel\>    |          |         | channels          |
+| permissions | Array\<Permission\> |          | yes     | given permissions |
+| lines       | Array\<Line\>       |          |         | lines             |
+
+on `permissions#expression`
+
+| name          | position | description           |
+|:------------- |:-------- |:--------------------- |
+| view          | 0        | viewable message      |
+| post          | 1        | postable ...          |
+| modify_mine   | 2        | modifiable my ...     |
+| modify_others | 3        | modifiable others ... |
+| delete_mine   | 4        | deletable my ...      |
+| delete_others | 5        | deletable others ...  |
+
 
 ### Channel
 
@@ -454,13 +489,23 @@ type Line = Omit<Viewable, "view_id" | "updated"> & {
 API側からも情報を取得できるようにしたかったけど悶々として策定が進まなかったので別案にて.
 
 ```typescript=
-type VoiceChatInfo = Omit<Viewable, "name", "view_id"> & undefined
+type VoiceChatInfo = Omit<Viewable, "name", "view_id"> & undefined & {
+  "permissions": Array<Permission>,
+}
 ```
 
 未策定です.
 
 | field | type | optional | default | description |
 |:----- |:---- |:-------- |:------- |:----------- |
+
+on `permissions#expression`
+
+| name   | position | description     |
+|:------ |:-------- |:--------------- |
+| view   | 0        | viewable action |
+| action | 1        | postable ...    |
+
 
 ### VoiceChatAction
 
@@ -487,6 +532,21 @@ type VoiceChatActionType = "join" | "quit"
     | "deafen" | "undeafen"
 ```
 
+
+### Permission
+
+```typescript=
+type Permission = Omit<Viewable, "name" | "view_id"> {
+  "expression": number, // `u32`
+  "target": Uuid,
+}
+```
+
+| field      | type   | optional | default | description           |
+|:---------- |:------ |:-------- |:------- |:--------------------- |
+| expression | number |          |         | associated permission |
+| target     | Uuid   |          |         | link to User#id       |
+
 ## Schema (of private data)
 
 ### UserAuthData
@@ -496,7 +556,6 @@ type UserAuthData = {
   "id": Uuid,
   "name": string,
   "hash": string,
-  "tokens": Array<Token>,
 }
 ```
 
@@ -505,37 +564,36 @@ type UserAuthData = {
 | id     | Uuid           |          |         | link to User  |
 | name   | string         |          |         | unique name   |
 | hash   | string         |          |         | password hash |
-| tokens | Array\<Token\> |          |         | issued tokens |
 
 ### Token
 
 ```typescript=
 type Token = {
   "id": Uuid,
+  "target": Uuid,
   "hash": string,
   "expiration": Date,
-  "authority": TokenAuthority,
+  "authority": number, // u32
 }
 ```
 
-| field      | type           | optional | default | description          |
-|:---------- |:-------------- |:-------- |:------- |:-------------------- |
-| id         | Uuid           |          |         | unique token id      |
-| hash       | string         |          |         | token hash           |
-| expiration | Date           |          |         | valid until          |
-| authority  | TokenAuthority |          |         | associated authority |
+| field      | type   | optional | default | description          |
+|:---------- |:------ |:-------- |:------- |:-------------------- |
+| id         | Uuid   |          |         | unique token id      |
+| target     | Uuid   |          |         | bound user id        |
+| hash       | string |          |         | token hash           |
+| expiration | Date   |          |         | valid until          |
+| authority  | number |          |         | associated authority |
 
-### TokenAuthority
+on `authority`
 
-```typescript=
-type TokenAuthority = number
-```
-
-// TODO: Usecaseが固まったらそれごとに割り当てれば良いんじゃね？
-
-| name     | position | description |
-|:-------- |:-------- |:----------- |
-| identify | 0        |             |
+| name                | position | description |
+|:------------------- |:-------- |:----------- |
+| identify            | 0        |             |
+| user_update         | 1        |             |
+| user_auth_update    | 2        |             |
+| user_delete_request | 3        |             |
+| user_delete_confirm | 4        |             |
 
 ## Usecases
 
@@ -543,13 +601,15 @@ type TokenAuthority = number
 
 #### create
 
+*no authority required*
+
 ##### input
 
 ```typescript=
 {
   "name": User.name,
   "view_id": User.view_id,
-  "auth_id": UserAuthData.name,
+  "auth_name": UserAuthData.name,
   "auth_password": string,
 }
 ```
@@ -561,6 +621,8 @@ User
 ```
 
 #### read
+
+*no authority required*
 
 ##### input
 
@@ -578,6 +640,11 @@ User
 
 #### update
 
+- identify
+- user_update
+- user_auth_update *?*
+  - from `auth_.*`
+
 ##### input
 
 ```typescript=
@@ -588,7 +655,7 @@ User
   "icon"?: User.icon,
   "status"?: User.status,
   "introduction"?: User.introduction,
-  "auth_id"?: UserAuthData.name,
+  "auth_name"?: UserAuthData.name,
   "auth_password"?: string,
 }
 ```
@@ -600,6 +667,9 @@ User
 ```
 
 #### delete (1)
+
+- identify
+- user_delete_request
 
 ##### input
 
@@ -618,6 +688,14 @@ User
 ```
 
 #### delete (2)
+
+- identify
+
+.
+
+- on `confirmed`
+  - identify
+  - user_delete_confirm
 
 ##### input
 
@@ -641,6 +719,8 @@ User
 
 #### create
 
+- identify
+
 ##### input
 
 ```typescript=
@@ -657,6 +737,8 @@ Room
 
 #### read
 
+*no authority required*
+
 ##### input
 
 ```typescript=
@@ -672,6 +754,13 @@ Room
 ```
 
 #### update
+
+- identify
+
+.
+
+- permission
+  - modify
 
 ##### input
 
@@ -692,6 +781,13 @@ Room
 
 #### delete
 
+- identify
+
+.
+
+- permission
+  - delete
+
 ##### input
 
 ```typescript=
@@ -710,6 +806,8 @@ Room
 
 #### create
 
+*cannot access*
+
 ##### input
 
 ```typescript=
@@ -723,6 +821,8 @@ TextChatInfo
 ```
 
 #### read (1)
+
+*no authority required*
 
 ##### input
 
@@ -740,6 +840,13 @@ TextChatInfo
 
 #### read (2)
 
+- identify
+
+.
+
+- permission
+  - view
+
 ##### input
 
 ```typescript=
@@ -755,6 +862,13 @@ Message
 ```
 
 #### read (3)
+
+- identify
+
+.
+
+- permission
+  - view
 
 ##### input
 
@@ -818,6 +932,13 @@ type MessageFilterCondition =
 
 #### update (1)
 
+- identify
+
+.
+
+- permission
+  - post
+
 ##### input
 
 ```typescript=
@@ -836,6 +957,14 @@ Message
 ```
 
 #### update (2)
+
+- identify
+
+.
+
+- permission
+  - modify_mine *or* modify_others
+    - if Message is posted from you, need **mine**, otherwise it's **others**.
 
 ##### input
 
@@ -857,6 +986,8 @@ Message
 
 #### delete (1)
 
+*cannot access*
+
 ##### input
 
 ```typescript=
@@ -872,6 +1003,14 @@ Message
 ```
 
 #### delete (2)
+
+- identify
+
+.
+
+- permission
+  - delete_mine *or* delete_others
+    - same as the Textchat::"update (2)"
 
 ##### input
 
@@ -889,6 +1028,8 @@ Message
 
 ### VoiceChat
 
+*cannot access*
+
 #### create
 
 ##### input
@@ -905,6 +1046,13 @@ VoiceChatInfo
 
 #### read (1)
 
+- identify
+
+.
+
+- permission
+  - view
+
 ##### input
 
 ```typescript=
@@ -920,6 +1068,13 @@ VoiceChatInfo
 ```
 #### read (2)
 
+- identify
+
+.
+
+- permission
+  - view
+
 ##### input
 
 ```typescript=
@@ -934,6 +1089,13 @@ VoiceChatInfo
 VoiceChatAction
 ```
 #### read (3)
+
+- identify
+
+.
+
+- permission
+  - view
 
 ##### input
 
@@ -982,6 +1144,13 @@ type VoiceChatActionFilterCondition =
 
 #### update
 
+- identify
+
+.
+
+- permission
+  - action
+
 ##### input
 
 ```typescript=
@@ -997,6 +1166,8 @@ VoiceChatAction
 ```
 
 #### delete
+
+*cannot access*
 
 ##### input
 
